@@ -45,19 +45,6 @@ st.markdown(f"""
     [data-testid="stSidebar"] {{ background-color: {box_bg} !important; }}
     [data-testid="stSidebar"] * {{ color: {text_color} !important; }}
     
-    /* הופך את כפתור התפריט (ההמבורגר) בנייד לבולט מאוד */
-    [data-testid="collapsedControl"] {{
-        background-color: {border_color} !important;
-        color: #ffffff !important;
-        border-radius: 8px !important;
-        margin: 5px !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important;
-        z-index: 100 !important;
-    }}
-    [data-testid="collapsedControl"] svg {{
-        fill: #ffffff !important;
-    }}
-    
     textarea {{ 
         direction: rtl; text-align: right; font-family: 'Courier New', monospace; 
         background-color: {box_bg} !important; color: {text_color} !important;
@@ -69,13 +56,6 @@ st.markdown(f"""
         border-radius: 8px; border: none; transition: all 0.3s ease; font-weight: bold;
     }}
     .stButton > button:hover {{ transform: translateY(-2px); box-shadow: 0 4px 12px {btn_hover_shadow}; }}
-    
-    /* עיצוב כפתור ההרצה המיוחד לנייד */
-    .run-btn-container .stButton > button {{
-        background: linear-gradient(45deg, #28a745, #218838); /* ירוק בולט */
-        font-size: 18px;
-        padding: 10px;
-    }}
     
     .chord-card {{ display: inline-block; margin: 5px; padding: 10px; color: white !important; border-radius: 8px; text-align: center; min-width: 60px; }}
     
@@ -186,7 +166,7 @@ def find_easy_shift(text):
     return best_shift if best_shift <= 6 else best_shift - 12
 
 # ==========================================
-# הממשק הראשי - שימוש במשתנים קבועים
+# הממשק הראשי - שימוש במשתנים קבועים כדי למנוע באגים של אי התאמה!
 # ==========================================
 MENU_EDITOR = "🎶 עורך ומשנה סולמות"
 MENU_YOUTUBE = "🎧 מנתח שירים מיוטיוב"
@@ -198,11 +178,9 @@ if app_mode == MENU_EDITOR:
     st.title('🎶 עורך ומשנה סולמות')
     text_in = st.text_area("הדבק כאן שיר (מאוחד עם האקורדים):", height=150, placeholder="Am      G\nשלום לך...")
     
-    # כפתור הרצה מיוחד לנייד
-    st.markdown('<div class="run-btn-container">', unsafe_allow_html=True)
-    if st.button("🚀 עבד והצג שיר (לחץ כאן לאחר הדבקה)"):
-        pass # עצם הלחיצה מרעננת את המסך ומושכת את הטקסט מהתיבה
-    st.markdown('</div>', unsafe_allow_html=True)
+    # כפתור הרצה שימושי בעיקר לניידים
+    if st.button("🚀 הצג שיר (לחץ כאן לאחר הדבקה)"):
+        pass 
     
     st.markdown("<br>", unsafe_allow_html=True)
     
