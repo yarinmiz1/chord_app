@@ -178,11 +178,11 @@ if app_mode == MENU_EDITOR:
     st.title('🎶 עורך ומשנה סולמות')
     text_in = st.text_area("הדבק כאן שיר (מאוחד עם האקורדים):", height=150, placeholder="Am      G\nשלום לך...")
     
-    # --- התוספת לנייד ---
-    if st.button("🚀 הצג שיר (לחץ כאן לאחר הדבקה)"):
+    # --- תוספת כפתור הרצה לנייד ---
+    if st.button("🚀 הרץ שיר (לחץ כאן לאחר הדבקה)"):
         pass 
     st.markdown("<br>", unsafe_allow_html=True)
-    # --------------------
+    # ------------------------------
     
     c1, c2, c3 = st.columns([1,2,1])
     if c1.button("➖ הורד חצי טון"): 
