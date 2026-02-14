@@ -36,10 +36,17 @@ tooltip_text = "#000000" if st.session_state.dark_mode else "#ffffff"
 btn_bg = "#d9534f" if st.session_state.dark_mode else "#4a90e2"
 btn_hover_shadow = "rgba(217, 83, 79, 0.4)" if st.session_state.dark_mode else "rgba(74, 144, 226, 0.4)"
 
+# --- התיקון הגדול למובייל נמצא כאן ב-CSS ---
 st.markdown(f"""
     <style>
-    .stApp {{ direction: rtl; text-align: right; background-color: {bg_color}; color: {text_color}; }}
-    h1, h2, h3, p, div, label, span, .stMarkdown {{ text-align: right; color: {text_color}; }}
+    /* ביטול ה-RTL הכללי כדי לשמור על תפריט יציב במובייל */
+    .stApp {{ background-color: {bg_color}; color: {text_color}; }}
+    
+    /* יישור ספציפי לימין של התוכן בלבד */
+    .main .block-container {{ direction: rtl; text-align: right; }}
+    [data-testid="stSidebar"] .block-container {{ direction: rtl; text-align: right; }}
+    
+    h1, h2, h3, p, label, span, .stMarkdown {{ text-align: right; color: {text_color}; }}
     .stTextInput > div > div > input {{ direction: ltr; text-align: left; }} 
     
     [data-testid="stSidebar"] {{ background-color: {box_bg} !important; }}
@@ -59,7 +66,7 @@ st.markdown(f"""
     
     .chord-card {{ display: inline-block; margin: 5px; padding: 10px; color: white !important; border-radius: 8px; text-align: center; min-width: 60px; }}
     
-    .capo-box {{ background-color: {box_bg}; color: {border_color} !important; padding: 15px; border-radius: 10px; border-left: 5px solid {border_color}; text-align: center; margin-top: 10px; margin-bottom: 10px; font-weight: bold; font-size: 18px; }}
+    .capo-box {{ background-color: {box_bg}; color: {border_color} !important; padding: 15px; border-radius: 10px; border-left: 5px solid {border_color}; text-align: center; margin-top: 10px; margin-bottom: 10px; font-weight: bold; font-size: 18px; direction: rtl; }}
     
     .chord-hover {{ position: relative; display: inline-block; color: {border_color} !important; font-weight: bold; cursor: pointer; border-bottom: 2px solid {border_color}; padding: 0 2px; }}
     
@@ -166,7 +173,7 @@ def find_easy_shift(text):
     return best_shift if best_shift <= 6 else best_shift - 12
 
 # ==========================================
-# הממשק הראשי - שימוש במשתנים קבועים כדי למנוע באגים של אי התאמה!
+# הממשק הראשי 
 # ==========================================
 MENU_EDITOR = "🎶 עורך ומשנה סולמות"
 MENU_YOUTUBE = "🎧 מנתח שירים מיוטיוב"
@@ -179,7 +186,7 @@ if app_mode == MENU_EDITOR:
     text_in = st.text_area("הדבק כאן שיר (מאוחד עם האקורדים):", height=150, placeholder="Am      G\nשלום לך...")
     
     # --- תוספת כפתור הרצה לנייד ---
-    if st.button("🚀 הרץ שיר (לחץ כאן לאחר הדבקה)"):
+    if st.button("🚀 הצג שיר (לחץ כאן לאחר הדבקה)"):
         pass 
     st.markdown("<br>", unsafe_allow_html=True)
     # ------------------------------
