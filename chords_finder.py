@@ -36,21 +36,17 @@ tooltip_text = "#000000" if st.session_state.dark_mode else "#ffffff"
 btn_bg = "#d9534f" if st.session_state.dark_mode else "#4a90e2"
 btn_hover_shadow = "rgba(217, 83, 79, 0.4)" if st.session_state.dark_mode else "rgba(74, 144, 226, 0.4)"
 
-# --- התיקון הגדול למובייל נמצא כאן ב-CSS ---
 st.markdown(f"""
     <style>
-    /* ביטול ה-RTL הכללי כדי לשמור על תפריט יציב במובייל */
     .stApp {{ background-color: {bg_color}; color: {text_color}; }}
     
-    /* יישור ספציפי לימין של התוכן בלבד */
-    .main .block-container {{ direction: rtl; text-align: right; }}
-    [data-testid="stSidebar"] .block-container {{ direction: rtl; text-align: right; }}
+    .block-container {{ direction: rtl; text-align: right; }}
     
     h1, h2, h3, p, label, span, .stMarkdown {{ text-align: right; color: {text_color}; }}
     .stTextInput > div > div > input {{ direction: ltr; text-align: left; }} 
     
     [data-testid="stSidebar"] {{ background-color: {box_bg} !important; }}
-    [data-testid="stSidebar"] * {{ color: {text_color} !important; }}
+    [data-testid="stSidebar"] * {{ color: {text_color} !important; text-align: right; }}
     
     textarea {{ 
         direction: rtl; text-align: right; font-family: 'Courier New', monospace; 
@@ -139,28 +135,88 @@ def generate_piano_svg(base, suffix):
     svg += '</svg>'
     return svg
 
+# ==========================================
+# אלגוריתם "תופרת" משופר - שומר על רווחים!
+# ==========================================
+def fix_tab4u_paste(text):
+    text = text.replace('***', ' ').replace('**', ' ').replace('*', ' ')
+    
+    lines = text.split('\n')
+    fixed_lines = []
+    i = 0
+    chord_pattern = re.compile(r"^\s*([#b]?[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|7|9|11|13|5|/)*)\s*$", re.IGNORECASE)
+
+    while i < len(lines):
+        line = lines[i]
+        match = chord_pattern.match(line)
+
+        if match and i + 1 < len(lines):
+            chord = match.group(1).strip()
+            if chord.startswith('#') or chord.startswith('b'):
+                if len(chord) >= 2 and chord[1].upper() in 'ABCDEFG':
+                    chord = chord[1].upper() + chord[0] + chord[2:]
+            chord = chord[0].upper() + chord[1:]
+
+            next_line = lines[i+1]
+            
+            prev_line = fixed_lines.pop().rstrip() if fixed_lines else ""
+            
+            match_next = re.search(r'^(\S+)', next_line.lstrip())
+            if match_next:
+                word_end = match_next.group(1)
+                next_base = next_line.lstrip()[match_next.end():]
+            else:
+                word_end = " "
+                next_base = ""
+
+            new_line = f"{prev_line} [[{chord}|{word_end}]] {next_base}"
+            new_line = re.sub(r' +', ' ', new_line).strip()
+            lines[i+1] = new_line
+            i += 1
+        else:
+            fixed_lines.append(line)
+            i += 1
+
+    return "\n".join(fixed_lines)
+
 def transpose_text_logic(text, semitones, simplify=False, instrument="🎸 גיטרה"):
-    pattern = r"\b([A-G](?:#|b)?)(m|maj|min|dim|aug|sus|add|7|9|11|13|5)*\b"
-    def replace(match):
+    pattern_inline = r"\b([A-G](?:#|b)?)(m|maj|min|dim|aug|sus|add|7|9|11|13|5)*\b"
+    
+    def replace_inline(match):
         full_chord, base, suffix = match.group(0), match.group(1), match.group(2) or ""
         new_base = shift_base(base, semitones)
         new_suffix = simplify_suffix(suffix) if simplify else suffix
         new_chord = new_base + new_suffix
 
-        # הגדלת ה-Tooltip דינמית בהתאם לכלי הנבחר
         if "פסנתר" in instrument:
             tooltip_content = generate_piano_svg(new_base, simplify_suffix(suffix))
-            t_style = "width: 340px; margin-left: -170px;" # פסנתר רחב וגדול
+            t_style = "width: 340px; margin-left: -170px;" 
         else:
             basic_chord = new_base + simplify_suffix(suffix)
             frets = CHORD_FRETS.get(basic_chord, 'xxxxxx')
             clean_root = new_chord.replace("#", "%23")
             img_url = f"https://chordgenerator.net/{clean_root}.png?p={frets}&s=10"
             tooltip_content = f'<img src="{img_url}" alt="{new_chord}">'
-            t_style = "width: 220px; margin-left: -110px;" # גיטרה בגודל רגיל
+            t_style = "width: 220px; margin-left: -110px;" 
             
         return f'<span class="chord-hover">{new_chord}<span class="chord-tooltip" style="{t_style}">{tooltip_content}</span></span>'
-    return re.sub(pattern, replace, text)
+    
+    text = re.sub(pattern_inline, replace_inline, text)
+
+    # --- התיקון לקפיצות של המילים והפונטים ---
+    pattern_stacked = r"\[\[(<span class=\"chord-hover\">.*?</span>)\|([^\]]+)\]\]"
+    def replace_stacked(match):
+        chord_html = match.group(1)
+        word = match.group(2)
+        
+        chord_html = chord_html.replace('class="chord-hover"', 'class="chord-hover" style="font-size: 0.9em; line-height: 1;"')
+        
+        # שימוש ב-inline-block רגיל מבטיח שהמילה תשב בדיוק על אותה שורה ואותו גובה כמו שאר המשפט
+        return f'<span style="display: inline-block; text-align: center; vertical-align: baseline; margin: 0 2px;"><span style="display: block; margin-bottom: 0px;">{chord_html}</span><span style="display: block; line-height: inherit;">{word}</span></span>'
+
+    text = re.sub(pattern_stacked, replace_stacked, text)
+    
+    return text
 
 def find_easy_shift(text):
     best_shift, max_easy_count = 0, -1
@@ -183,13 +239,12 @@ app_mode = st.sidebar.radio("בחר כלי:", [MENU_EDITOR, MENU_YOUTUBE])
 
 if app_mode == MENU_EDITOR:
     st.title('🎶 עורך ומשנה סולמות')
-    text_in = st.text_area("הדבק כאן שיר (מאוחד עם האקורדים):", height=150, placeholder="Am      G\nשלום לך...")
     
-    # --- תוספת כפתור הרצה לנייד ---
-    if st.button("🚀 הצג שיר (לחץ כאן לאחר הדבקה)"):
+    text_in = st.text_area("הדבק כאן שיר מאתר אקורדים (גם אם הוא יצא הפוך או שבור):", height=150, placeholder="Am      G\nשלום לך...")
+    if st.button("🚀 עבד והצג שיר (לחץ כאן לאחר הדבקה)"):
         pass 
+            
     st.markdown("<br>", unsafe_allow_html=True)
-    # ------------------------------
     
     c1, c2, c3 = st.columns([1,2,1])
     if c1.button("➖ הורד חצי טון"): 
@@ -259,8 +314,10 @@ if app_mode == MENU_EDITOR:
                 </script>
             """, height=0)
 
-        new_text = transpose_text_logic(text_in, st.session_state.transpose, simplify=st.session_state.simplify, instrument=instrument)
-        st.markdown(f"<div style='background:{box_bg}; color:{text_color}; padding:25px; border-radius:15px; border: 1px solid {border_color}; white-space:pre-wrap; direction:rtl; font-size: 18px; line-height: 1.8;'>{new_text}</div>", unsafe_allow_html=True)
+        clean_text = fix_tab4u_paste(text_in)
+        new_text = transpose_text_logic(clean_text, st.session_state.transpose, simplify=st.session_state.simplify, instrument=instrument)
+        
+        st.markdown(f"<div style='background:{box_bg}; color:{text_color}; padding:25px; border-radius:15px; border: 1px solid {border_color}; white-space:pre-wrap; word-break:normal; overflow-wrap:break-word; direction:rtl; font-size: 18px; line-height: 1.8;'>{new_text}</div>", unsafe_allow_html=True)
 
 elif app_mode == MENU_YOUTUBE:
     st.title('🎧 מנתח שירים מיוטיוב')
